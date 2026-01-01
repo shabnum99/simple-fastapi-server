@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi import HTTPException
 from pydantic import BaseModel
 from typing import List
 
@@ -12,9 +13,12 @@ class noteCreate(BaseModel):
     title: str
     content: str
 
-@app.post("/notes")
+@app.post("/notes", status_code = 201)
 def create_note(note: noteCreate):
     global note_id_counter
+
+    if not note.title.strip():
+        raise HTTPException(status_code = 400, detail = "Title Cannot be empty")
 
     new_note = {
         "id": note_id_counter,
@@ -25,10 +29,7 @@ def create_note(note: noteCreate):
     notes.append(new_note)
     note_id_counter = note_id_counter + 1
 
-    return {
-        "message" : "Note Created Successfully",
-        "note" : new_note
-    }
+    return new_note
 
 @app.get("/notes")
 def get_notes():
@@ -42,7 +43,10 @@ def get_note(note_id: int):
     for note in notes:
         if(note["id"]== note_id):
             return note
-    return {"error": "No Note Found!"}
+    raise HTTPException(
+        status_code = 404,
+        detail = "Node Not Found"
+    )
 
 
 @app.delete("/notes/{note_id}")
@@ -54,7 +58,10 @@ def delete_notes(note_id: int):
                 "message": "Note Deleted Successfully!",
                 "Deleted Node": deleted_note
             }
-    return {"error": "Node Not Found!"}
+    raise HTTPException(
+        status_code = 404,
+        detail = "Node Not Found"
+    )
 
 class nodeUpdate(BaseModel):
     title: str
@@ -70,4 +77,7 @@ def update_note(note_id: int, updated_note: nodeUpdate):
                 "message": "Note updated Successfully",
                 "Updated Note": note
             }
-    return {"error": "No Note Found"}
+    raise HTTPException(
+        status_code = 404,
+        detail = "Node Not Found"
+    )
